@@ -133,8 +133,8 @@
 
         </div>
         <p>
-        <pre class="prettyprint lang-js">jsonQuery.parse("store.products[family = 'geek' && price < 50]", JSON);</pre>
-        <pre class="prettyprint lang-js">jsonQuery.parse("store.products[myOwnFilter()]", JSON);</pre>
+        <pre class="prettyprint lang-js">jsonQuery(JSON).find("store.products[family = 'geek' && price < 50]");</pre>
+        <pre class="prettyprint lang-js">jsonQuery(JSON).find("store.products[myOwnFilter()]");</pre>
         </p>
 
         <h2>Features</h2>
@@ -143,10 +143,10 @@
                 <h3>Simple pointer to a property</h3>
                 <ul>
                     <li>
-                        <pre class="prettyprint lang-js">jsonQuery.parse("path.to.the.property", JSON);</pre>
+                        <pre class="prettyprint lang-js">jsonQuery(JSON).find("path.to.the.property");</pre>
                     </li>
                     <li>
-                        <pre class="prettyprint lang-js">jsonQuery.parse("path.to.the[property]", JSON);</pre>
+                        <pre class="prettyprint lang-js">jsonQuery(JSON).find("path.to.the[property]");</pre>
                     </li>
                 </ul>
             </li>
@@ -154,16 +154,16 @@
                 <h3>Filtering Array</h3>
                 <ul>
                     <li>
-                        <pre class="prettyprint lang-js">jsonQuery.parse("path.to.an.array", JSON);</pre>
+                        <pre class="prettyprint lang-js">jsonQuery(JSON).find("path.to.an.array");</pre>
                     </li>
                     <li>
-                        <pre class="prettyprint lang-js">jsonQuery.parse("path.to.an.array[1]", JSON); // only if Array</pre>
+                        <pre class="prettyprint lang-js">jsonQuery(JSON).find("path.to.an.array[1]"); // only if Array</pre>
                     </li>
                     <li>
-                        <pre class="prettyprint lang-js">jsonQuery.parse("path.to.an.array[position() = last()]", JSON);</pre>
+                        <pre class="prettyprint lang-js">jsonQuery(JSON).find("path.to.an.array[position() = last()]");</pre>
                     </li>
                     <li>
-                        <pre class="prettyprint lang-js">jsonQuery.parse("path.to.an.array.last()", JSON);</pre>
+                        <pre class="prettyprint lang-js">jsonQuery(JSON).find("path.to.an.array.last()");</pre>
                     </li>
                 </ul>
             </li>
@@ -171,13 +171,13 @@
                 <h3>Filtering Hash</h3>
                 <ul>
                     <li>
-                        <pre class="prettyprint lang-js">jsonQuery.parse("path.to.an.hash", JSON);</pre>
+                        <pre class="prettyprint lang-js">jsonQuery(JSON).find("path.to.an.hash");</pre>
                     </li>
                     <li>
-                        <pre class="prettyprint lang-js">jsonQuery.parse("path.to.an.hash[id]", JSON);</pre>
+                        <pre class="prettyprint lang-js">jsonQuery(JSON).find("path.to.an.hash[id]");</pre>
                     </li>
                     <li>
-                        <pre class="prettyprint lang-js">jsonQuery.parse("path.to.an.hash[age > 18]", JSON);</pre>
+                        <pre class="prettyprint lang-js">jsonQuery(JSON).find("path.to.an.hash[age > 18]");</pre>
                     </li>
                 </ul>
             </li>
@@ -185,10 +185,10 @@
                 <h3>Create your own filtering method.</h3>
                 <ul>
                     <li>
-                        <pre class="prettyprint lang-js">jsonQuery.parse("object[myFilter()]", JSON);</pre>
+                        <pre class="prettyprint lang-js">jsonQuery(JSON).find("object[myFilter()]");</pre>
                     </li>
                     <li>
-                        <pre class="prettyprint lang-js">jsonQuery.parse("array[myFilter(property1, property2, 'whatever_u_need')]", JSON);</pre>
+                        <pre class="prettyprint lang-js">jsonQuery(JSON).find("array[myFilter(property1, property2, 'whatever_u_need')]");</pre>
                     </li>
                 </ul>
             </li>
