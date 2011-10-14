@@ -4,7 +4,7 @@ An easy to use JSON selector, inspired by XPATH but tuned for javascript approac
 
 ## Install
 
-    npm install jsonQuery
+    npm install jsonQuery (not ready yet)
 
 or
 
