@@ -1,3 +1,5 @@
+/* exemple of use */
+
 var jsonQuery = require("jsonQuery");
 
 var JSON = {
