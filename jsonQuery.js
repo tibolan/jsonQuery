@@ -1,135 +1,74 @@
 // TODO: add %
-// TODO: add !
-// TODO: cast
+// TODO: add operation
+// TODO: exists fn
+// TODO: keep original query for string output
+// TODO: joker *
 
-log = function () {
-    //return console.log.apply(this, arguments);
-}
+/**
+ * jsonQuery: a simple to use json selector
+ * @param datas {Object} the json to select in
+ * @return API { Object}
+ * @function find('selector'): like in jQuery, feed with a selector it will return the property of the json targetted by selector.
+ * @function test("val1" == "val2"): a tester for comparison or to execute function
+ * @function addFilter(fnName, fn): create your own filter and use it just by register them
+ */
+var jsonQuery = (function () {
 
-function test(){
-    console.log(arguments);
-    if(Math.round(Math.random()*1000)%2) return false;
-    return true;
-}
-
-function first(array) {
-    return array[0];
-}
-function last(array) {
-    return array[array.length - 1];
-}
-
-function getInitial(name) {
-    if (typeof name.split != "function") return false;
-    var sp = name.split(" ");
-    return sp[0][0] + sp[1][0];
-}
-
-function concat() {
-    var args = Array.prototype.slice.call(arguments, 0);
-    return args.join("");
-}
-
-function double(val) {
-    return val * 2;
-}
-
-function length(item) {
-    return item.length;
-}
-
-function float(str) {
-    return parseFloat(str.replace(/["']*/, "").replace(",", "."));
-}
-
-function isEven(uid) {
-    return uid % 2 == 0;
-}
-
-function exists(prop, src, index) {
-    return typeof prop != "undefined" && prop != null;
-}
+    var ORIGINAL_DATAS = {},
+        START_DELIMITER = [".", "[", "(", "'", '"'],
+        END_DELIMITER = ["]", ")","'", '"'],
+        UGLY_PATTERN_STR = "@°~°@",
+        UGLY_PATTERN_RGX = /@°~°@/g,
+        debugMode = false;
 
 
-var DATAS = {
-    title:"My Title",
-    id: "oneDoc",
-    uid: 100,
-    userID: "abc123",
-    prop1: {
-        prop2: {
-            prop3: "42"
-        }
-    },
+    /**
+     * @function
+     * @param fnName {String} the name of the function
+     * @description use to evaluate function, all the params passed after the name, will be passed to the function.
+     * */
+    function evaluateFunction(fnName /*, args1, args2..., index*/) {
+        var args = Array.prototype.slice.apply(arguments, [0]);
+        args = args.slice(1, args.length - 1);
+        var index = arguments[arguments.length-1];
 
-    store: {
-
-        users: [
-            {
-                id: "abc123",
-                uid:1,
-                name:"Usain Bolt",
-                hobbies: ["athletism"],
-                role: "admin"
-            },
-            {
-                id: "def456",
-                uid:2,
-                name:"Michael Jordan",
-                hobbies: ["basket", "baseball", "beachVolley"]
-            },
-            {
-                id: "ghi789",
-                uid:3,
-                name:"Alain Robert",
-                hobbies: ["climbing", "cricket", "curling"]
-            },
-            {
-                id: "klm012",
-                uid:4,
-                name:"Jacques Mayol",
-                hobbies: ["diving", "dining"]
-            }
-        ]
-    }
-
-};
-
-
-/* jsonQuery */
-jsonQuery = (function () {
-
-    var ORIGINAL_DATAS = {};
-
-    function evaluateFunction(fnName, args, index) {
+        // shortcut
         if (fnName == "position") {
             return index;
         }
+
         try {
-            return eval(fnName).apply(this, (typeof args.push == "function") ? args : [args]);
+            return jsonQuery.fn[fnName].apply(this, args);
         }
+
         catch(e) {
-            log(fnName, args)
-            // a method of native is called
-            return eval("'" + args[0] + "'." + fnName + "()");
+            try {
+                log("try", "'" + args[0] + "'." + fnName + "()");
+                // a method of native is called
+                return eval("'" + args[0] + "'." + fnName + "()");
+            } catch(e) {
+                log("catch");
+                throw "evaluateFunction() => Can't evaluate: " + fnName + "(" + args + ")";
+            }
         }
 
     }
 
+    /**
+     * @function
+     *  @description use to evaluate a test
+     * @param test {String} the test to evaluate, typicaly something like that:   val1 == val2
+     * @param datas {Object} the data to search in: try to eval('val1'), if not null, return else return as string
+     * @param index {Number} the position from his parent object
+     */
+
     function evaluate(test, datas, index) {
         if (!datas) datas = ORIGINAL_DATAS;
-        // fix syntax
-        // = en ==, gestion des quotes
-        // regexp function()
-        // en i--, replace fn par sa valeur de retour
-        // predica
-        // store predicate
-
 
         test = fixEvalSyntax(test);
 
         // try to evaluate all the non operand element
-        var test = test.replace(/([^!<>=&]+)/g, function () {
+        test = test.replace(/([^!<>=&%]+)/g, function () {
             var str = arguments[0];
 
             if (!str) return "";
@@ -139,33 +78,33 @@ jsonQuery = (function () {
             if (fnToExec) {
                 var fn = fnToExec[1];
                 var args = fnToExec[2];
-
-
+                var tmp = [fn];
+                var tmp2;
 
                 if (args.indexOf(',') != -1) {
                     args = args.split(",");
                     args = args.map(function (item, index, array) {
-                        return parsePath(item, datas);
+                        tmp2 = parsePath(item, datas);
+                        tmp.push(tmp2);
                     })
+                    tmp.push(index);
+                    args = tmp;
+                    delete tmp;
+                    delete tmp2;
+                } else if (args.length) {
+                    args = [fn, parsePath(fnToExec[2], datas), index];
+                } else {
+                    args = [fn, datas, index];
                 }
-                else if(args.length) {
-                    args = parsePath(fnToExec[2], datas);
-                }
-                else {
-                    args = [datas, index];
-                }
-
-                str = str.replace(fnToExec[0], evaluateFunction(fn, args, index));
+                str = str.replace(fnToExec[0], evaluateFunction.apply(this, args));
             }
 
             var prop = parsePath(str, datas);
+
             if (typeof prop != "undefined" && prop !== null) {
-
-
                 if (isNaN(parseInt(prop, 10))) {
                     return "'" + prop + "'";
-                }
-                else {
+                } else {
                     return parseFloat(prop, 10);
                 }
             }
@@ -182,18 +121,15 @@ jsonQuery = (function () {
 
         var ev;
         try {
-            ev = eval(test);
+            ev = cast(eval(test));
 
-        }
-        catch(err) {
+        } catch(err) {
             ev = false;
         }
-        log("\n     ------------------------------> ", test, "-->", ev, "\n");
+        if (debugMode) {
+            console.log("\nTEST: ----> ", test, "\nRESULT: -->", ev);
+        }
         return ev;
-    }
-
-    function fixEvalSyntax(path) {
-        return path.replace(/([^!<>=])=([^!<>=])/g, "$1==$2").replace(/ /g, "");
     }
 
     function resolvePath(str, datas, type) {
@@ -216,12 +152,12 @@ jsonQuery = (function () {
                     }
                     // if str contains an index --> property[2]
                     subpath = parseInt(isIndex[2], 10);
-                }
-                else if (isPredica) {
+                } else if (isPredica) {
                     // if str contains a test --> =, !, >, <, %
                     outputDatas = outputDatas[isPredica[1]];
                     outputDatas = outputDatas.filter(function (item, index) {
-                        if (evaluate(isPredica[2], item, index || 0)) {
+                        var okko = evaluate(isPredica[2], item, index);
+                        if (okko) {
                             return true;
                         }
                         return false;
@@ -236,51 +172,65 @@ jsonQuery = (function () {
                 break;
         }
 
-
         /* output */
-
         if (subpath !== null) {
             try {
                 return outputDatas[subpath];
+            } catch(e) {
+                throw "resolvePath() => undefined path: \"" + str + "\"";
             }
-            catch(e) {
-
-                throw "undefined path: \"" + str + "\"";
-            }
-
         }
         return outputDatas;
     }
 
     function parsePath(str, datas) {
-        log("**************************************");
+        if (debugMode) {
+            console.log("INPUT: ----> ", str);
+        }
         if (!datas) datas = ORIGINAL_DATAS;
         str = str.replace(/^\./, "");
-        log("parsePath:", str);
         var Fst = getFirstSubpath(str);
-        log("path/subpath:", Fst);
         var out = resolvePath(Fst.path, datas, Fst.type);
         // in some case, a last try is made with empty path
         if (!Fst.path.length) {
-            return datas;
+            out = datas;
         }
         // if the recursion is not finished
         else if (Fst.subpath) {
-            return parsePath(Fst.subpath, out);
+            out = parsePath(Fst.subpath, out);
         }
         // if it's a normal last
-        else if(out){
-            console.log("\n-------------------------------------\n")
-            return out;
+        else if (out) {
+            out = out;
+        } else if (typeof out == "undefined") {
+            out = Fst.path;
+        } else {
+            // if path was not resolvable (case of string);
+            console.warn("Warning: path \"" + Fst.path + "\" is not resolvable");
         }
-        // if path was not resolvable (case of string);
-        console.warn("Warning: path \""+Fst.path+"\" is not resolvable");
-        return Fst.path;
+        if (debugMode) {
+            console.log("OUT: ----> ", out);
+        }
+        return out;
 
     }
 
-    var START_DELIMITER = [".", "[", "(", "'", '"'];
-    var END_DELIMITER = ["]", ")","'", '"'];
+    function cast(str) {
+        switch (true) {
+            case str == "true":
+                str = true;
+                break;
+            case str == "false":
+                str = false;
+                break;
+            case !isNaN(parseFloat(str, 10)):
+                str = parseFloat(str, 10);
+                break;
+            default:
+                break;
+        }
+        return str;
+    }
 
     function getFirstSubpath(str) {
         var i = 0, out = {}, re;
@@ -296,7 +246,6 @@ jsonQuery = (function () {
                     subpath:str.slice(i),
                     type: "property"
                 }
-
                 //out.path = out.path.replace(/^(["'])|\1$]/g, "");
                 break;
             case "[":
@@ -314,8 +263,30 @@ jsonQuery = (function () {
                     type: "property"
                 }
         }
-        out.path = out.path.replace(/^["']|["']$/g, "");
         return out;
+    }
+
+    function fixEvalSyntax(path) {
+        path = path.replace(/, +?/g, ",");
+        path = protectSpace(path);
+        path = path.replace(/ /g, "");
+        path = path.replace(/([^!<>=])=([^!<>=])/g, "$1==$2");
+        path = unprotectSpace(path);
+        return path;
+    }
+
+    function protectSpace(str) {
+        // protect space by replacing them by an uglyPattern
+        str = str.replace(/(['"])(.*?)\1/g, function(str, gr1, gr2) {
+            return gr2.replace(/ /g, UGLY_PATTERN_STR);
+        });
+        return str;
+    }
+
+    function unprotectSpace(str) {
+        // protect space by replacing them by an uglyPattern
+        str = str.replace(UGLY_PATTERN_RGX, " ");
+        return str;
     }
 
     function findCloseTag(str, startChar, endChar, type) {
@@ -333,56 +304,47 @@ jsonQuery = (function () {
         return {
             find: parsePath,
 
-            eval : evaluate
+            test : evaluate,
+
+            addFilter: function (fnName, fn) {
+                jsonQuery.fn[name] = fn;
+                return this;
+            }
         }
     }
-
 })();
 
+jsonQuery.fn = {
+    // method with array, index as argumentsshould be call with no args
 
-var Start = (new Date);
+    first: function (array, index) {
+        return array[0];
+    },
 
-/* OK: log(jsonQuery.parse("title", DATAS, true));*/
-/* OK: log(jsonQuery.parse("store.users", DATAS, true));*/
-/* OK: log(jsonQuery.parse("store.users[1]", DATAS, true));*/
-/* OK:  throw error cause path not exist, log(jsonQuery.parse("users[1]", DATAS, true));*/
-/* OK: log(jsonQuery.parse("store.users[uid=2]", DATAS, true));*/
-/* OK: log(jsonQuery.parse("store.users[uid>2]", DATAS, true));*/
-/* OK: log(jsonQuery.parse("store.users[1].hobbies", DATAS, true));*/
-/* OK: log(jsonQuery.parse("prop1.prop2.prop3", DATAS, true));*/
-/* OK: log(jsonQuery.parse("store.users[getInitial(name) == 'MJ']", DATAS, true));*/
-/* OK: log(jsonQuery.parse("store.users[length(hobbies) = 3]", DATAS, true));*/
-//OK: log(jsonQuery.parse("length(store.users)", DATAS, true));
-/* KO: log("result:",jsonQuery.parse("store.users[isEven(uid)]", DATAS, true));*/
-/* OK: log("result:",jsonQuery.parse("store.users[position() > 2]", DATAS, true));*/
-/* OK: log("result:",jsonQuery.parse("store.users[length(hobbies)=2]", DATAS, true));*/
-/* OK: log("result:",jsonQuery.parse("store.users[length(hobbies)>2]", DATAS, true));*/
-/* KO: log("result:",jsonQuery.parse("store.users[exists(role)]", DATAS, true));*/
-/* OK: log("\n\nresult:",jsonQuery.parse("store.users[length(hobbies)=1]", DATAS, true));*/
-/* KO:  jsonQuery.parse("store.users[uid=1 && length(name) > 2].first().name", DATAS);*/
-/* OK: log("\n\n-----> Should return the whole datas:\n\n",jsonQuery.parse("", DATAS));*/
-/* OK: log("\n\n-----> Should return the value passed:\n\n",jsonQuery.parse("12", DATAS));*/
-/* OK: log("\n\n-----> Should return the value passed:\n\n",jsonQuery.parse("prop1", DATAS));*/
-/* KO:  should return a string /log("\n\n-----> Should return the array passed:\n\n",jsonQuery.parse("'store'", DATAS));*/
+    last: function (array, index) {
+        return array[array.length - 1];
+    },
 
-var $json =jsonQuery(DATAS), i=1;
-for (var i = 0; i < 1; i++) {
-    /*console.log($json.find("store"));
-    console.log($json.find("store.users"));
-    console.log($json.find("store.users[2]"));
-    console.log($json.find("store.users[uid>1]"));
-    console.log($json.find("store.users[uid>1].last()"));
-    console.log($json.find("store.users[uid>1].last().name"));
-    console.log($json.find("store.users[uid>1].last().name.getInitial()"));*/
-    console.log("\n_______________________________________\n");
-    console.log($json.find("store.users[test() = true]")); // args will be [datas, index];
-    continue;
-    $json.find("store.users[test(name)]"); // args will be [name];
-    $json.find("store.users[test(name, id)]");// args will be [name, id];
-    $json.find("store.users[test(name, id, hobbies)]");// args will be [name, id];
+    length: function (item) {
+        if (typeof item.push != "function") {
+            return 42;
+        }
+        return item.length;
+    },
+
+    isEven: function (prop) {
+        return prop % 2 == 0;
+    },
+
+    isOdd: function (prop) {
+        return prop % 2 != 0;
+    },
+
+    concat: function () {
+        return Array.prototype.slice.call(arguments, 0).join('');
+    }
+};
+
+if(global && module){
+    module.exports = jsonQuery;
 }
-var End = (new Date);
-var Delta = End - Start;
-console.log("\nExecuted in " + Delta + 'ms for '+i+" iteration. ("+Delta/i+"ms)");
-
-

@@ -1,0 +1,16 @@
+{
+    "name": "jsonQuery"
+  , "version": "1.0"
+  , "description": "A JSON selector"
+  , "homepage": "http://tibolan.github.com/jsonQuery/"
+  , "keywords": ["JSON", "selector", "XPATH", "jQuery"]
+  , "author": "Thibault Lanssade (tibolan) <tibolan@gmail.com>"
+  , "repository":{
+        "type": "git"
+      , "url": "https://github.com/tibolan/jsonQuery"
+    }
+  , "dependencies": {}
+  , "devDependencies": {}
+  , "main": "jsonQuery"
+  , "engines": { "node": ">= 0.4.0" }
+}
